@@ -26,6 +26,7 @@ function App() {
   const [currentSegmentIdx, setCurrentSegmentIdx] = useState(0);
 
   const timerRef = useRef<number | null>(null);
+  const transitionRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     setLogs(getLogs());
@@ -54,35 +55,9 @@ function App() {
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
-  useEffect(() => {
-    if (appState !== 'workout' || isPaused) {
-      if (timerRef.current) clearInterval(timerRef.current);
-      return;
-    }
-
-    timerRef.current = window.setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          handlePhaseTransition();
-          return 0; // Temporarily 0, will be updated by handlePhaseTransition
-        }
-        
-        // Play beep on last 3 seconds
-        if (prev <= 4) {
-          audioController.playTick();
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [appState, isPaused, phase, currentExerciseIdx, currentSet]);
-
   const handlePhaseTransition = () => {
     const exercise = routine[currentExerciseIdx];
-    
+
     if (phase === 'prep') {
       audioController.playStartBell();
       setPhase('work');
@@ -125,6 +100,35 @@ function App() {
       setTimeLeft(PREP_TIME);
     }
   };
+
+  // Keep transitionRef.current always pointing to the latest handlePhaseTransition
+  transitionRef.current = handlePhaseTransition;
+
+  // Timer — just decrements timeLeft once per second, no transition logic
+  useEffect(() => {
+    if (appState !== 'workout' || isPaused) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return;
+    }
+
+    timerRef.current = window.setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) return 0;
+        if (prev <= 4) audioController.playTick();
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [appState, isPaused]);
+
+  // Transition — fires when timeLeft reaches 0 (separate from the timer tick)
+  useEffect(() => {
+    if (appState !== 'workout' || timeLeft > 0 || isPaused) return;
+    transitionRef.current?.();
+  }, [timeLeft, appState, isPaused]);
 
   const handleRate = (rating: number) => {
     const exercisesLog = routine.map((ex, idx) => ({
@@ -293,7 +297,7 @@ function App() {
           <CheckCircle size={80} color="var(--success)" style={{ marginBottom: '2rem' }} className="animate-slide-up" />
           <h2 style={{ fontSize: '2.5rem', marginBottom: '1rem', textAlign: 'center' }}>Great Job!</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '3rem', textAlign: 'center' }}>How did this session feel?</p>
-          
+
           <Rating onRate={handleRate} />
         </div>
       )}
