@@ -26,6 +26,14 @@ class AudioController {
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
+    // Play a silent oscillator immediately to fully unlock iOS Web Audio
+    const osc = this.ctx.createOscillator();
+    const gainNode = this.ctx.createGain();
+    gainNode.gain.value = 0;
+    osc.connect(gainNode);
+    gainNode.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.01);
   }
 
   playTone(frequency: number, duration: number, type: OscillatorType = 'sine') {
