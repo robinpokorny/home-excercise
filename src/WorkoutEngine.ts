@@ -6,12 +6,14 @@ export interface Exercise {
   image: string;
 }
 
+const BASE = import.meta.env.BASE_URL;
+
 export const routine: Exercise[] = [
-  { id: 'plank', name: 'Plank', sets: 4, durationSeconds: 30, image: '/images/plank.png' },
-  { id: 'hollow', name: 'Hollow Body Hold', sets: 3, durationSeconds: 20, image: '/images/hollow.png' },
-  { id: 'lunge-l', name: 'Left Leg Lunge', sets: 2, durationSeconds: 20, image: '/images/lunge.png' },
-  { id: 'lunge-r', name: 'Right Leg Lunge', sets: 2, durationSeconds: 20, image: '/images/lunge.png' },
-  { id: 'hip', name: 'Hip Movement', sets: 1, durationSeconds: 60, image: '/images/hip.png' },
+  { id: 'plank', name: 'Plank', sets: 4, durationSeconds: 30, image: `${BASE}images/plank.png` },
+  { id: 'hollow', name: 'Hollow Body Hold', sets: 3, durationSeconds: 20, image: `${BASE}images/hollow.png` },
+  { id: 'lunge-l', name: 'Left Leg Lunge', sets: 2, durationSeconds: 20, image: `${BASE}images/lunge.png` },
+  { id: 'lunge-r', name: 'Right Leg Lunge', sets: 2, durationSeconds: 20, image: `${BASE}images/lunge.png` },
+  { id: 'hip', name: 'Hip Movement', sets: 1, durationSeconds: 60, image: `${BASE}images/hip.png` },
 ];
 
 class AudioController {
