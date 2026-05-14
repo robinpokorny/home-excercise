@@ -23,6 +23,7 @@ function App() {
   const [isPaused, setIsPaused] = useState(false);
   const [completedSets, setCompletedSets] = useState<Record<number, number>>({});
   const [skippedExercises, setSkippedExercises] = useState<Record<number, boolean>>({});
+  const [currentSegmentIdx, setCurrentSegmentIdx] = useState(0);
 
   const timerRef = useRef<number | null>(null);
 
@@ -40,6 +41,7 @@ function App() {
     setIsPaused(false);
     setCompletedSets({});
     setSkippedExercises({});
+    setCurrentSegmentIdx(0);
   };
 
   const endWorkout = () => {
@@ -84,24 +86,38 @@ function App() {
     if (phase === 'prep') {
       audioController.playStartBell();
       setPhase('work');
-      setTimeLeft(exercise.durationSeconds);
-    } else if (phase === 'work') {
-      audioController.playEndBell();
-      setCompletedSets(prev => ({ ...prev, [currentExerciseIdx]: (prev[currentExerciseIdx] || 0) + 1 }));
-      if (currentSet < exercise.sets) {
-        // Next set, rest
-        setCurrentSet(s => s + 1);
-        setPhase('rest');
-        setTimeLeft(DEFAULT_REST_TIME);
+      setCurrentSegmentIdx(0);
+      if (exercise.segments) {
+        setTimeLeft(exercise.segments[0].durationSeconds);
       } else {
-        // Next exercise
-        if (currentExerciseIdx < routine.length - 1) {
-          setCurrentExerciseIdx(idx => idx + 1);
-          setCurrentSet(1);
+        setTimeLeft(exercise.durationSeconds);
+      }
+    } else if (phase === 'work') {
+      if (exercise.segments && currentSegmentIdx < exercise.segments.length - 1) {
+        // Advance to next segment
+        const nextIdx = currentSegmentIdx + 1;
+        setCurrentSegmentIdx(nextIdx);
+        audioController.playTick();
+        setTimeLeft(exercise.segments[nextIdx].durationSeconds);
+      } else {
+        // All segments done (or no segments), complete this set
+        audioController.playEndBell();
+        setCompletedSets(prev => ({ ...prev, [currentExerciseIdx]: (prev[currentExerciseIdx] || 0) + 1 }));
+        if (currentSet < exercise.sets) {
+          // Next set, rest
+          setCurrentSet(s => s + 1);
           setPhase('rest');
           setTimeLeft(DEFAULT_REST_TIME);
         } else {
-          endWorkout();
+          // Next exercise
+          if (currentExerciseIdx < routine.length - 1) {
+            setCurrentExerciseIdx(idx => idx + 1);
+            setCurrentSet(1);
+            setPhase('rest');
+            setTimeLeft(DEFAULT_REST_TIME);
+          } else {
+            endWorkout();
+          }
         }
       }
     } else if (phase === 'rest') {
@@ -157,7 +173,8 @@ function App() {
   };
 
   const exercise = routine[currentExerciseIdx];
-  const maxTime = phase === 'prep' ? PREP_TIME : phase === 'rest' ? Math.max(DEFAULT_REST_TIME, timeLeft) : exercise?.durationSeconds || 1;
+  const currentSegment = exercise.segments?.[currentSegmentIdx];
+  const maxTime = phase === 'prep' ? PREP_TIME : phase === 'rest' ? Math.max(DEFAULT_REST_TIME, timeLeft) : currentSegment ? currentSegment.durationSeconds : exercise?.durationSeconds || 1;
   const progress = Math.min(1, timeLeft / maxTime);
 
   return (
@@ -220,7 +237,12 @@ function App() {
           </div>
 
           <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem', textAlign: 'center' }}>{exercise.name}</h2>
-          <p style={{ color: 'var(--accent-purple)', fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '2rem' }}>
+          {phase === 'work' && currentSegment && (
+            <p style={{ color: 'var(--accent-blue)', fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+              {currentSegment.name}
+            </p>
+          )}
+          <p style={{ color: 'var(--accent-purple)', fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase' }}>
             Set {currentSet} of {exercise.sets}
           </p>
 
@@ -232,7 +254,7 @@ function App() {
           <Timer
             progress={progress}
             timeLeft={timeLeft}
-            label={phase === 'prep' ? 'Get Ready' : phase === 'rest' ? 'Rest' : 'Hold'}
+            label={phase === 'prep' ? 'Get Ready' : phase === 'rest' ? 'Rest' : currentSegment ? currentSegment.name : 'Hold'}
             color={phase === 'prep' ? 'var(--warning)' : phase === 'rest' ? 'var(--success)' : 'var(--accent-blue)'}
           />
 

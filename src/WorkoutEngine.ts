@@ -1,9 +1,15 @@
+export interface ExerciseSegment {
+  name: string;
+  durationSeconds: number;
+}
+
 export interface Exercise {
   id: string;
   name: string;
   sets: number;
   durationSeconds: number;
   image: string;
+  segments?: ExerciseSegment[];
 }
 
 const BASE = import.meta.env.BASE_URL;
@@ -11,8 +17,18 @@ const BASE = import.meta.env.BASE_URL;
 export const routine: Exercise[] = [
   { id: 'plank', name: 'Plank', sets: 4, durationSeconds: 30, image: `${BASE}images/plank.png` },
   { id: 'hollow', name: 'Hollow Body Hold', sets: 3, durationSeconds: 20, image: `${BASE}images/hollow.png` },
-  { id: 'lunge-l', name: 'Left Leg Lunge', sets: 2, durationSeconds: 20, image: `${BASE}images/lunge.png` },
-  { id: 'lunge-r', name: 'Right Leg Lunge', sets: 2, durationSeconds: 20, image: `${BASE}images/lunge.png` },
+  {
+    id: 'alternating-lunges',
+    name: 'Alternating Lunges',
+    sets: 2,
+    durationSeconds: 45,
+    image: `${BASE}images/lunge.png`,
+    segments: [
+      { name: 'Left Leg', durationSeconds: 20 },
+      { name: 'Switch', durationSeconds: 5 },
+      { name: 'Right Leg', durationSeconds: 20 },
+    ],
+  },
   { id: 'hip', name: 'Hip Movement', sets: 1, durationSeconds: 60, image: `${BASE}images/hip.png` },
 ];
 
